@@ -1,0 +1,127 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <string.h>
+
+void handle_signal(int sig)
+{
+    write(STDOUT_FILENO,"\nInterrupt detected! Ctrl + C pressed. \n",40);
+    exit(EXIT_SUCCESS);
+}
+
+int main()
+{
+    int fd1[2], fd2[2];
+    pid_t pid;
+    char message[100];
+    char buffer[100];
+    char input[80];
+    char choice[10];
+    ssize_t bytes;
+    int option;
+
+    signal(SIGINT, handle_signal);
+
+    pipe(fd1);
+    pipe(fd2);
+
+    pid = fork();
+
+    if (pid == 0)
+    {
+
+	signal(SIGINT, SIG_IGN);
+
+        close(fd1[1]);
+        close(fd2[0]);
+        close(fd2[1]);
+
+        while ((bytes = read(fd1[0], buffer, 100)) > 0)
+	{
+		buffer[bytes] = '\0';
+        	printf("\nStudent [PID: %d] Information: %s\n", getpid(), buffer);
+		fflush(stdout);
+	}
+
+        close(fd1[0]);
+        exit(EXIT_SUCCESS);
+    }
+
+    pid = fork();
+
+    if (pid == 0)
+    {
+
+	signal(SIGINT, SIG_IGN);
+
+        close(fd2[1]);
+        close(fd1[0]);
+        close(fd1[1]);
+
+        while ((bytes = read(fd2[0], buffer, 100)) > 0)
+	{
+		buffer[bytes] = '\0';
+		printf("\nTeachers [PID: %d] Notification: %s\n", getpid(), buffer);
+		fflush(stdout);
+	}
+
+        close(fd2[0]);
+        exit(EXIT_SUCCESS);
+    }
+
+    close(fd1[0]);
+    close(fd2[0]);
+
+    while(1)
+    {
+	printf("\n====SCHOOL ADMIN SYSTEM====\n");
+	printf("1. Send Announcement\n");
+	printf("2. Exit\n");
+	printf("Enter your choice: \n");
+	fflush(stdout);
+
+	if (fgets(choice, sizeof(choice), stdin) == NULL)
+	break;
+
+	option = atoi(choice);
+
+	if (option == 2)
+	{
+		printf("\nExiting School Admin System. \n");
+		break;
+	}
+
+	if (option != 1)
+	{
+		printf("Invalid choice.\n");
+		continue;
+	}
+
+	printf("School Admin: Enter an announcement: ");
+	fflush(stdout);
+
+ 	if (fgets(input, sizeof(input), stdin) == NULL)
+	break;
+
+	snprintf(message, sizeof(message), "%s", input);
+
+	write(fd1[1], message, sizeof(message));
+ 	write(fd2[1], message, sizeof(message));
+
+	usleep(100000);
+    }
+
+    close(fd1[1]);
+    close(fd2[1]);
+
+    wait(NULL);
+    wait(NULL);
+
+    return 0;
+}
+
+
+
