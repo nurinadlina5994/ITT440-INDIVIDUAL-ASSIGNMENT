@@ -25,9 +25,11 @@ int main()
 
     signal(SIGINT, handle_signal);
 
+	//create pipes for sending announcement
     pipe(fd1);
     pipe(fd2);
 
+	// create first child process for students
     pid = fork();
 
     if (pid == 0)
@@ -39,6 +41,7 @@ int main()
         close(fd2[0]);
         close(fd2[1]);
 
+		//read announcements from the student pipe
         while ((bytes = read(fd1[0], buffer, 100)) > 0)
 	{
 		buffer[bytes] = '\0';
@@ -50,6 +53,7 @@ int main()
         exit(EXIT_SUCCESS);
     }
 
+	 //create second child process for teachers
     pid = fork();
 
     if (pid == 0)
@@ -61,6 +65,7 @@ int main()
         close(fd1[0]);
         close(fd1[1]);
 
+		//read announcement from the teacher pipe
         while ((bytes = read(fd2[0], buffer, 100)) > 0)
 	{
 		buffer[bytes] = '\0';
@@ -75,6 +80,7 @@ int main()
     close(fd1[0]);
     close(fd2[0]);
 
+	//keep displaying admin menu until user exit the system
     while(1)
     {
 	printf("\n====SCHOOL ADMIN SYSTEM====\n");
@@ -83,26 +89,31 @@ int main()
 	printf("Enter your choice: \n");
 	fflush(stdout);
 
+	//read the menu choice from the user
 	if (fgets(choice, sizeof(choice), stdin) == NULL)
 	break;
 
 	option = atoi(choice);
 
+	//exit the system if option 2 is selected
 	if (option == 2)
 	{
 		printf("\nExiting School Admin System. \n");
 		break;
 	}
 
+	//display an error for an invalid menu choice
 	if (option != 1)
 	{
 		printf("Invalid choice.\n");
 		continue;
 	}
 
+	//ask admin to enter an announcement
 	printf("School Admin: Enter an announcement: ");
 	fflush(stdout);
 
+	//read the announcement entered by the admin
  	if (fgets(input, sizeof(input), stdin) == NULL)
 	break;
 
@@ -117,6 +128,7 @@ int main()
     close(fd1[1]);
     close(fd2[1]);
 
+	//wait for both child processes to finish
     wait(NULL);
     wait(NULL);
 
